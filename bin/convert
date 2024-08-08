@@ -1,0 +1,57 @@
+#!/usr/bin/env node
+import fs from "node:fs";
+import path from "node:path";
+
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
+// Function to parse the text data
+function parseData(data) {
+  const lines = data.split("\n").filter((line) => line.trim() !== "");
+  const players = lines
+    .map((line) => {
+      const regex =
+        /^(\d+)\.\s+(.+?),\s+(\w{2,3})\s--\s(\w+\d),\s\$(\d+)\s\(Bye:\s(\d+)\)$/;
+      const match = line.match(regex);
+
+      if (match) {
+        return {
+          rank: parseInt(match[1], 10),
+          name: match[2].trim(),
+          team: match[3],
+          position: match[4],
+          price: parseInt(match[5], 10),
+          bye: parseInt(match[6], 10),
+        };
+      }
+      return null;
+    })
+    .filter((player) => player !== null);
+
+  return players;
+}
+
+// Read the text file
+fs.readFile(path.join(__dirname, "../players.txt"), "utf8", (err, data) => {
+  if (err) {
+    console.error("Error reading the file:", err);
+    return;
+  }
+
+  // Parse the data
+  const players = parseData(data);
+
+  // Convert to JSON and write to a file
+  fs.writeFile(
+    path.join(__dirname, "../players.json"),
+    JSON.stringify(players, null, 2),
+    "utf8",
+    (err) => {
+      if (err) {
+        console.error("Error writing the JSON file:", err);
+        return;
+      }
+
+      console.log("JSON file has been saved.");
+    }
+  );
+});
