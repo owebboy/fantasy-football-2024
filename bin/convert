@@ -14,11 +14,18 @@ function parseData(data) {
       const match = line.match(regex);
 
       if (match) {
+        // calculate position and position rank
+        //match[4] = "QB1" "DST5" "RB2" "WR3" "etc"
+        const position = match[4].match(/(\D+)(\d+)/);
+
         return {
           rank: parseInt(match[1], 10),
           name: match[2].trim(),
           team: match[3],
-          position: match[4],
+          position: {
+            position: position[1],
+            rank: parseInt(position[2], 10),
+          },
           price: parseInt(match[5], 10),
           bye: parseInt(match[6], 10),
         };
