@@ -1,91 +1,264 @@
 <script lang="ts">
-  import players, { type PlayerPosition, type Player } from "./players";
-  import { writable } from "svelte/store";
+  import players, { type Player } from "./players";
+  import { stores } from "./lib/stores";
+  import { derived } from "svelte/store";
+  import {
+    calculatePositionColor,
+    chunkedPlayers,
+    currentPick,
+    currentRound,
+    findPlayer,
+    togglePlayer,
+  } from "./lib/helpers";
 
-  // chunk the players into 12 player chunks, each alternating chunk is reversed
-  const chunkedPlayers: Player[][] = players
-    .reduce((acc: Player[][], player, idx) => {
-      const chunkIdx = Math.floor(idx / 12);
-      if (!acc[chunkIdx]) {
-        acc[chunkIdx] = [];
-      }
-      acc[chunkIdx].push(player);
-      return acc;
-    }, [])
-    .map((round, idx) => (idx % 2 === 0 ? round : round.reverse()));
+  let { keepers, currentTab, draft, ready } = stores;
 
-  const selectedPlayers = writable<Player[]>([]);
-  const calculatePositionColor = (position: PlayerPosition["position"]) => {
-    switch (position) {
-      case "QB":
-        return "#00509E";
-      case "RB":
-        return "#228B22";
-      case "WR":
-        return "#C60C30";
-      case "TE":
-        return "#FF8C00";
-      case "DST":
-        return "#6A0DAD";
-      case "K":
-        return "#333333";
-      default:
-        return "black";
+  $: isAnimating = false;
+
+  const playersList = (
+    isDraft: boolean,
+    drafted: Player[],
+    keepers: Player[],
+    players: Player[]
+  ) => {
+    if (!isDraft) {
+      return players;
+    }
+
+    return [
+      ...drafted,
+      ...players.filter(
+        (player) => !findPlayer(player, keepers) && !findPlayer(player, drafted)
+      ),
+    ];
+  };
+
+  // Derived store for currentPlayerSet
+  const currentPlayerSet = derived(
+    [keepers, currentTab, draft],
+    (d) => {
+      // Return the chunked player list
+      return chunkedPlayers(
+        playersList($currentTab === "draft", $draft, $keepers, players)
+      );
+    },
+    [] // Initial value for currentPlayerSet
+  );
+
+  const onClick = (player: Player) => () => {
+    switch ($currentTab) {
+      case "keepers":
+        $keepers = togglePlayer(player, $keepers);
+        break;
+      case "draft":
+        $draft = togglePlayer(player, $draft);
     }
   };
 </script>
 
-<div class="grid">
-  {#each chunkedPlayers as round, idx}
-    {#each round as player}
+{#await ready}
+  <p>loading...</p>
+{:then}
+  <header>
+    <nav>
+      {#each ["all players", "keepers", "draft"] as tab}
+        <button
+          on:click={() => ($currentTab = tab)}
+          class:selected={$currentTab === tab}
+        >
+          {tab}
+        </button>
+      {/each}
+    </nav>
+    <nav>
       <button
-        class="player"
-        on:click={() => {
-          selectedPlayers.update((players) => {
-            // toggle the player in the selected players array
-            if (players.includes(player)) {
-              return players.filter((p) => p !== player);
-            }
-            return [...players, player];
-          });
-        }}
-        class:selected={$selectedPlayers.includes(player)}
-        style="background-color: {calculatePositionColor(
-          player.position.position
-        )}"
+        disabled={!$keepers.length}
+        on:click={() =>
+          confirm(`Clear all Keepers? (This will delete ${$keepers.length})`) &&
+          ($keepers = [])}>Clear Keepers</button
       >
-        <div class="player-meta">
-          <p class="player-rank">#{player.rank}</p>
-          <p class="player-position">{player.position.position}</p>
-        </div>
-        <p class="player-name">{player.name}</p>
-        <div>
-          <p>{player.team}</p>
-        </div>
-      </button>
-    {/each}
-  {/each}
-</div>
+      <button
+        disabled={!$draft.length}
+        on:click={() =>
+          confirm(
+            `Clear all Drafted Players? (This will delete ${$draft.length})`
+          ) && ($draft = [])}>Clear Draft</button
+      >
+    </nav>
+  </header>
+  <main>
+    <div class="grid">
+      {#each $currentPlayerSet as round}
+        {#each round as player (player)}
+          <button
+            class="player"
+            on:click={onClick(player)}
+            class:player-selected={findPlayer(player, $keepers) ||
+              findPlayer(player, $draft)}
+            style="background-color: {calculatePositionColor(
+              player.position.position
+            )}"
+            class:player-keeper={findPlayer(player, $keepers)}
+            class:player-drafted={findPlayer(player, $draft)}
+            disabled={$currentTab === "keepers" &&
+              findPlayer(player, $draft) !== undefined}
+          >
+            <div class="player-meta">
+              <p class="player-rank">
+                #{player.rank}
+              </p>
+              <p class="player-position">{player.position.position}</p>
+            </div>
+            <p class="player-name">{player.name}</p>
+            <div>
+              <p>{player.team}</p>
+            </div>
+          </button>
+        {/each}
+      {/each}
+    </div>
+    {#if $currentTab !== "all players"}
+      <aside>
+        {#if $currentTab === "keepers"}
+          <h2>Keepers ({$keepers.length})</h2>
+          <div class="draft">
+            {#each $keepers as player}
+              <div class="draft-player">
+                <div class="rank">{player.rank}</div>
+                <div class="name">{player.name}</div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+        {#if $currentTab === "draft"}
+          <div class="tab-header">
+            <h2>Draft</h2>
+            <div>
+              <p>Round: {currentRound($draft)}</p>
+              <p>Pick: {currentPick($draft)}</p>
+            </div>
+          </div>
+
+          <div class="draft">
+            {#each $draft as player, idx}
+              <div class="draft-player">
+                <div class="rank">{idx + 1}</div>
+                <div class="name">{player.name}</div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </aside>
+    {/if}
+  </main>
+{/await}
 
 <style>
-  p {
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  p,
+  h2 {
     margin: 0;
   }
 
+  main {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  aside {
+    border-left: 2px solid #444;
+    padding: 1rem;
+    width: 20%;
+    background: rgba(2, 2, 2, 0.9);
+    backdrop-filter: blur(0.5px);
+  }
+
+  aside h2 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #444;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .player-keeper {
+    filter: grayscale(1) brightness(0.6);
+  }
+  .player-keeper::before {
+    content: "Keeper";
+    background: rgba(255, 255, 255, 0.6);
+    color: #000;
+    padding: 0;
+    font-size: 0.5rem;
+    width: 100%;
+    text-transform: uppercase;
+  }
+  aside .draft {
+    display: grid;
+
+    width: 100%;
+  }
+
+  aside .draft-player {
+    padding: 0.1rem;
+    border: 1px solid #444;
+    display: flex;
+    align-items: flex-start;
+  }
+
+  aside .draft-player .name {
+    font-weight: 500;
+    text-align: center;
+    font-size: 0.8rem;
+    line-height: 1;
+    align-self: center;
+  }
+
+  aside .draft-player .rank {
+    font-size: 0.7rem;
+    margin-right: 0.1rem;
+    font-weight: 500;
+  }
+
+  @media (max-width: 1092px) {
+    main {
+      flex-direction: column;
+    }
+
+    aside {
+      border-left: 0;
+      border-top: 2px solid #444;
+      padding-top: 1rem;
+      width: calc(100% - 2rem);
+      position: sticky;
+      bottom: 0;
+      max-height: 20vh;
+      overflow-y: auto;
+    }
+    aside .draft {
+      grid-auto-flow: column;
+      grid-template-rows: repeat(8, minmax(0, 1fr));
+    }
+  }
+
   .grid {
+    margin: 1rem;
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     gap: 1px;
     place-items: center;
-    width: 1080px;
-    margin: 0 auto;
   }
 
   .player {
     border-radius: 4px;
     color: #fff;
-    height: calc(90px);
-    width: calc(90px);
+    height: 90px;
+    width: 90px;
 
     appearance: none;
     padding: 5px;
@@ -98,8 +271,7 @@
     cursor: pointer;
     background: transparent;
   }
-
-  .selected {
+  .player-selected {
     filter: grayscale(0.5) brightness(0.6);
   }
 
@@ -117,5 +289,60 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.8rem;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 2px solid #444;
+    margin-top: 1rem;
+    flex-wrap: nowrap;
+  }
+
+  nav {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    display: flex;
+  }
+
+  nav button {
+    border: 0;
+    font-size: large;
+    background: transparent;
+    border-top: 2px solid #444;
+    border-left: 2px solid #444;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    color: #fff;
+    text-transform: lowercase;
+  }
+
+  nav button:last-child {
+    border-right: 2px solid #444;
+  }
+
+  nav button.selected {
+    background: #444;
+  }
+
+  @media (max-width: 1091px) {
+    header nav button {
+      font-size: small;
+      padding: 0.5rem 0.5rem;
+    }
+    .player {
+      height: 60px;
+      width: 60px;
+      padding: 2px;
+      font-size: 0.5rem;
+    }
+    .player > p {
+      font-size: 0.7rem;
+      font-weight: 400;
+    }
+    .player-meta {
+      font-size: 0.5rem;
+    }
   }
 </style>
