@@ -238,12 +238,6 @@
     min-width: 200px;
   }
 
-  aside .draft-player .name {
-    text-wrap: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   aside .draft-player {
     padding: 0.1rem;
     border: 1px solid #444;
@@ -269,8 +263,6 @@
       bottom: 0;
       max-height: 20vh;
       overflow-y: auto;
-    }
-    aside .draft {
     }
   }
 
