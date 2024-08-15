@@ -144,7 +144,7 @@
           <h2>Keepers ({$keepers.length})</h2>
           <div class="draft">
             {#each $keepers as player}
-              <div class="draft-player">
+              <div class="keeper-player">
                 <div class="rank">{player.rank}</div>
                 <div class="name">{player.name}</div>
               </div>
@@ -236,6 +236,17 @@
     width: 100%;
     flex-direction: column;
     min-width: 200px;
+  }
+
+  aside .keeper-player {
+    padding: 0.1rem;
+    border: 1px solid #444;
+    display: grid;
+    grid-template-columns: 0.5fr 1fr;
+    width: 100%;
+
+    align-items: center;
+    font-size: small;
   }
 
   aside .draft-player {
