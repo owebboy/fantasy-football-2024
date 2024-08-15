@@ -1,4 +1,5 @@
 import type { Player, PlayerPosition } from "../players";
+import _ from "lodash";
 
 export const chunkedPlayers = (players: Player[]) => {
   return players
@@ -14,7 +15,7 @@ export const chunkedPlayers = (players: Player[]) => {
 };
 
 export const calculatePositionColor = (
-  position: PlayerPosition["position"],
+  position: PlayerPosition["position"]
 ) => {
   switch (position) {
     case "QB":
@@ -40,7 +41,7 @@ export const currentPick = (draft: Player[]) => {
 };
 
 export const currentRound = (draft: Player[]) => {
-  const currentRound = Math.ceil(draft.length / 12);
+  const currentRound = Math.ceil((draft.length + 1) / 12);
   return currentRound || 1;
 };
 

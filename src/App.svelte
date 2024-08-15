@@ -1,5 +1,5 @@
 <script lang="ts">
-  import players, { type Player } from "./players";
+  import getPlayers, { type Player } from "./players";
   import { stores } from "./lib/stores";
   import { derived } from "svelte/store";
   import {
@@ -11,9 +11,13 @@
     togglePlayer,
   } from "./lib/helpers";
 
-  let { keepers, currentTab, draft, ready } = stores;
+  import {
+    calculateDraftMetrics,
+    displayPercent,
+    type DraftMetrics,
+  } from "./lib/accuracy";
 
-  $: isAnimating = false;
+  let { keepers, currentTab, draft, ready } = stores;
 
   const playersList = (
     isDraft: boolean,
@@ -36,14 +40,31 @@
   // Derived store for currentPlayerSet
   const currentPlayerSet = derived(
     [keepers, currentTab, draft],
-    (d) => {
+    ([$keepers, $currentTab, $draft], set: (value: Player[][]) => void) => {
       // Return the chunked player list
-      return chunkedPlayers(
-        playersList($currentTab === "draft", $draft, $keepers, players)
-      );
+      (async () => {
+        set(
+          chunkedPlayers(
+            playersList(
+              $currentTab === "draft",
+              $draft,
+              $keepers,
+              await getPlayers()
+            )
+          )
+        );
+      })();
     },
     [] // Initial value for currentPlayerSet
   );
+
+  let metrics: DraftMetrics;
+
+  $: {
+    if ($currentTab === "draft") {
+      metrics = calculateDraftMetrics($draft);
+    }
+  }
 
   const onClick = (player: Player) => () => {
     switch ($currentTab) {
@@ -142,8 +163,20 @@
           <div class="draft">
             {#each $draft as player, idx}
               <div class="draft-player">
-                <div class="rank">{idx + 1}</div>
+                <div class="pick">{idx + 1}</div>
+                <div
+                  class="position"
+                  style={`color: ${calculatePositionColor(player.position.position)}`}
+                >
+                  {player.position.position}
+                </div>
+                <div class="rank">{player.rank}</div>
+
                 <div class="name">{player.name}</div>
+
+                <div class="accuracy" style={`color: ${metrics[idx].color}`}>
+                  {displayPercent(metrics[idx].accuracy)}%
+                </div>
               </div>
             {/each}
           </div>
@@ -199,30 +232,27 @@
     text-transform: uppercase;
   }
   aside .draft {
-    display: grid;
-
+    display: flex;
     width: 100%;
+    flex-direction: column;
+    min-width: 200px;
+  }
+
+  aside .draft-player .name {
+    text-wrap: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   aside .draft-player {
     padding: 0.1rem;
     border: 1px solid #444;
-    display: flex;
-    align-items: flex-start;
-  }
+    display: grid;
+    grid-template-columns: 0.5fr 1fr 1fr 4fr 1fr;
+    width: 100%;
 
-  aside .draft-player .name {
-    font-weight: 500;
-    text-align: center;
-    font-size: 0.8rem;
-    line-height: 1;
-    align-self: center;
-  }
-
-  aside .draft-player .rank {
-    font-size: 0.7rem;
-    margin-right: 0.1rem;
-    font-weight: 500;
+    align-items: center;
+    font-size: small;
   }
 
   @media (max-width: 1092px) {
@@ -241,8 +271,6 @@
       overflow-y: auto;
     }
     aside .draft {
-      grid-auto-flow: column;
-      grid-template-rows: repeat(8, minmax(0, 1fr));
     }
   }
 
