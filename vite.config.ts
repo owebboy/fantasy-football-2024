@@ -1,6 +1,5 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import vercel from "vite-plugin-vercel";
 import legacy from "@vitejs/plugin-legacy";
 import { VitePWA } from "vite-plugin-pwa";
 
@@ -11,11 +10,6 @@ export default defineConfig({
   },
   plugins: [
     svelte(),
-    vercel(),
-
-    legacy({
-      targets: ["defaults", "not IE 11"],
-    }),
 
     VitePWA({
       registerType: "autoUpdate",
@@ -38,6 +32,10 @@ export default defineConfig({
         background_color: "#ffffff",
         display: "standalone",
       },
+    }),
+
+    legacy({
+      targets: ["defaults", "not IE 11"],
     }),
   ],
 });
