@@ -16,6 +16,7 @@
     displayPercent,
     type DraftMetrics,
   } from "./lib/accuracy";
+  import { onMount } from "svelte";
 
   let { keepers, currentTab, draft, ready } = stores;
 

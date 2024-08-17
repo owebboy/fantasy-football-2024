@@ -20,6 +20,7 @@
     "tslib": "^2.6.3",
     "typescript": "^5.5.4",
     "vite": "^5.4.0",
+    "vite-plugin-pwa": "^0.20.1",
     "vite-plugin-vercel": "^8.0.1"
   },
   "dependencies": {
