@@ -28,4 +28,6 @@ export interface Player {
   consensusStrength: number;
   variance: number;
   rankings: PlayerRankings | null;
+  /** Jeff Mans Top 200 merge — absent for players outside the list */
+  jeff?: { rank: number; adp: number | null; high: boolean; sos: number | null } | null;
 }

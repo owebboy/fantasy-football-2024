@@ -113,7 +113,6 @@ function calculateRankingVector(entry) {
     consensusStrength,
     variance: Math.round(variance * 10) / 10,
     averageRank,
-
   };
 }
 

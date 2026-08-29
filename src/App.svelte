@@ -6,6 +6,7 @@ import {
   currentPick,
   currentRound,
   findPlayer,
+  jeffSorted,
   togglePlayer,
 } from './lib/helpers';
 import RankingArrow from './lib/RankingArrow.svelte';
@@ -26,11 +27,15 @@ const playersList = (isDraft: boolean, drafted: Player[], keepers: Player[]) => 
   ];
 };
 
-const currentPlayerSet = derived(
-  [keepers, currentTab, draft],
-  () => chunkedPlayers(playersList($currentTab === 'draft', $draft, $keepers)),
-  [],
-);
+const JEFF_TAB = "jeff's top 200";
+const TABS = ['all players', JEFF_TAB, 'keepers', 'draft'];
+
+const currentPlayerSet = derived([keepers, currentTab, draft], () => {
+  if ($currentTab === JEFF_TAB) {
+    return chunkedPlayers(jeffSorted(players));
+  }
+  return chunkedPlayers(playersList($currentTab === 'draft', $draft, $keepers));
+}, []);
 
 const onClick = (player: Player) => () => {
   switch ($currentTab) {
@@ -60,7 +65,7 @@ const clearDraft = () => {
 {:then}
   <header>
     <div role="tablist" aria-label="Player views">
-      {#each ["all players", "keepers", "draft"] as tab}
+      {#each TABS as tab}
         <button
           role="tab"
           aria-selected={$currentTab === tab}
@@ -73,7 +78,7 @@ const clearDraft = () => {
     </div>
     <div class="header-right">
       <button class="legend-toggle" title="Arrows show ranking disagreement between sources. Longer arrow = more variance." aria-label="Legend: arrows show ranking disagreement">?</button>
-      {#if $currentTab !== "all players"}
+      {#if $currentTab === "keepers" || $currentTab === "draft"}
         <nav aria-label="Data actions">
           {#if $currentTab === "keepers"}
             <button
@@ -91,7 +96,7 @@ const clearDraft = () => {
     </div>
   </header>
   <main>
-    <div class="grid" class:grid-readonly={$currentTab === "all players"}>
+    <div class="grid" class:grid-readonly={$currentTab === "all players" || $currentTab === JEFF_TAB}>
       {#each $currentPlayerSet as round}
         {#each round as player (player.rank)}
           <button
@@ -118,7 +123,7 @@ const clearDraft = () => {
         {/each}
       {/each}
     </div>
-    {#if $currentTab !== "all players"}
+    {#if $currentTab === "keepers" || $currentTab === "draft"}
       <aside>
         {#if $currentTab === "keepers"}
           <h2>Keepers ({$keepers.length})</h2>

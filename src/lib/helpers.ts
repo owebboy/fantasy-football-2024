@@ -53,3 +53,15 @@ export const togglePlayer = (player: Player, arr: Player[]) => {
 
   return [...arr, player];
 };
+
+/**
+ * Order players by Jeff Mans' Top 200.
+ * Players with a jeff rank lead in rank order; everyone else follows in regular order.
+ */
+export const jeffSorted = (players: Player[]) => {
+  const ranked = players
+    .filter((player) => player.jeff?.rank !== undefined)
+    .sort((a, b) => (a.jeff?.rank ?? 0) - (b.jeff?.rank ?? 0));
+  const rest = players.filter((player) => player.jeff?.rank === undefined);
+  return [...ranked, ...rest];
+};
