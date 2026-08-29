@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Draft-grid badge: 2x3 cells in the app's position colors on the app's dark background -->
+  <rect width="32" height="32" rx="7" fill="#242424"/>
+  <rect x="5"   y="5"  width="9.5" height="6" rx="1.5" fill="#00509E"/>
+  <rect x="17.5" y="5"  width="9.5" height="6" rx="1.5" fill="#228B22"/>
+  <rect x="5"   y="13" width="9.5" height="6" rx="1.5" fill="#C60C30"/>
+  <rect x="17.5" y="13" width="9.5" height="6" rx="1.5" fill="#c46c00"/>
+  <rect x="5"   y="21" width="9.5" height="6" rx="1.5" fill="#6A0DAD"/>
+  <rect x="17.5" y="21" width="9.5" height="6" rx="1.5" fill="#333333"/>
+</svg>
